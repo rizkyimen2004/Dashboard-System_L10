@@ -29,12 +29,6 @@ MON = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus"
 MI = dict(jan=0, feb=1, mar=2, apr=3, mei=4, may=4, jun=5, jul=6, agu=7, aug=7, sep=8, okt=9, oct=9, nov=10, des=11, dec=11)
 DEMO = [["Jan 2024",1,1142605,1806,0,1205,0],["Feb 2024",1,882406,1221,419,0,0],["Mar 2024",1,882329,677,0,0,0],["Apr 2024",1,598873,0,0,0,547],["Mei 2024",1,926591,3100,0,584,0],["Jun 2024",1,866858,622,0,789,0],["Jul 2024",1,1055019,0,670,688,0],["Agu 2024",1,1017862,568,0,1848,626],["Sep 2024",1,909643,1379,1128,598,0],["Okt 2024",1,1135519,636,0,1924,694],["Nov 2024",1,978176,0,1158,637,0],["Des 2024",1,876531,620,610,0,0],["Jan 2025",1,949057,1197,578,0,0],["Feb 2025",1,950099,0,0,1105,0],["Mar 2025",1,997630,0,0,0,536],["Apr 2025",1,772453,0,0,566,679],["Mei 2025",1,952963,0,0,1064,621],["Jun 2025",1,849628,0,0,0,1195],["Jul 2025",1,1168833,1800,647,511,0],["Agu 2025",1,1043728,2537,607,598,0],["Sep 2025",1,998330,1071,0,1294,0],["Nov 2025",2,1031962,596,0,1861,0],["Des 2025",2,784868,0,0,1170,0],["Jan 2026",2,259036,1839,623,559,0],["Feb 2026",2,244298,0,0,1270,0],["Mar 2026",2,227898,595,1185,0,0],["Apr 2026",2,310140,0,0,0,606],["Mei 2026",2,244093,2433,0,1178,0],["Jun 2026",2,248199,1680,1143,1651,0]]
 PAGES = ["1 · User Guide", "2 · Quality Control Analysis"]
-M6 = {"Machine": ["Setting mesin berubah", "Die/cetakan aus", "Mesin sering berhenti", "Perawatan terlambat"],
-      "Man": ["Operator baru/kurang pelatihan", "Pergantian shift", "SOP tidak diikuti", "Kelelahan operator"],
-      "Material": ["Pergantian lot/supplier kawat", "Diameter/kekerasan kawat tidak seragam", "Kawat berkarat/kotor", "Spesifikasi kawat berubah"],
-      "Method": ["Parameter produksi berubah", "SOP belum diperbarui", "Perubahan lini/pesanan", "Urutan proses berubah"],
-      "Measurement": ["Kriteria cacat beda antar inspektur", "Alat ukur belum dikalibrasi", "Sampling tidak konsisten", "Pencatatan cacat tidak lengkap"],
-      "Environment": ["Suhu/kelembapan area produksi", "Area kotor/berdebu", "Pencahayaan inspeksi kurang", "Penyimpanan WIP kurang baik"]}
 
 def fm(v, d=0): return f"{v:,.{d}f}".replace(",", "X").replace(".", ",").replace("X", ".")
 def H(x): st.markdown(x, unsafe_allow_html=True)
@@ -124,9 +118,9 @@ page = st.sidebar.radio("Navigasi", PAGES, key="page"); st.sidebar.caption("PT S
 if page == PAGES[0]:
     H('<div class="hero"><span class="pill">STEEL WIRE NAIL · L10</span><h1>WIREQ</h1><div class="sub">WIRE QUALITY MONITORING SYSTEM</div>'
       '<div class="tag">Monitor Quality. Control Process. Improve Performance.</div>'
-      '<p>Sistem monitoring kualitas produksi paku kawat baja L10 di PT Surabaya Wire. Unggah data produksi, analisis kestabilan proses dengan Statistical Process Control, lalu telusuri kemungkinan penyebab penyimpangan.</p></div>')
+      '<p>Sistem monitoring kualitas produksi paku kawat baja L10 di PT Surabaya Wire. Unggah data produksi, analisis kestabilan proses dengan Statistical Process Control, lalu tandai penyimpangan yang perlu ditindaklanjuti.</p></div>')
     sec("About the Dashboard")
-    H('<div class="grid">' + "".join(card(t, p) for t, p in [("Memantau Kualitas", "Melihat jumlah produksi, cacat, dan produk baik tiap periode."), ("Analisis Proporsi Cacat", "Menghitung proporsi cacat tiap subgroup."), ("Kestabilan Proses", "Mengevaluasi apakah proses berada dalam batas kendali statistik."), ("Penyebab Penyimpangan", "Mengidentifikasi kemungkinan penyebab dengan Fishbone (6M)."), ("Dukungan Keputusan", "Memberi dasar data untuk tindak lanjut pengendalian kualitas.")]) + "</div>")
+    H('<div class="grid">' + "".join(card(t, p) for t, p in [("Memantau Kualitas", "Melihat jumlah produksi, cacat, dan produk baik tiap periode."), ("Analisis Proporsi Cacat", "Menghitung proporsi cacat tiap subgroup."), ("Kestabilan Proses", "Mengevaluasi apakah proses berada dalam batas kendali statistik."), ("Penelusuran Penyimpangan", "Menandai subgroup di luar batas kendali untuk ditindaklanjuti bersama QC."), ("Dukungan Keputusan", "Memberi dasar data untuk tindak lanjut pengendalian kualitas.")]) + "</div>")
     sec("Understanding the Analysis")
     a, b = st.columns([1.05, 1])
     with a:
@@ -149,7 +143,7 @@ if page == PAGES[0]:
     H('<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">' + "".join(card(f'<span class="no">STEP {i:02d}</span><br>{t}', p, "step") for i, (t, p) in enumerate([
         ("Upload Data", "Unggah file Excel atau CSV berisi data produksi (atau pakai data contoh/input manual)."), ("Select Period", "Pilih bulan dan tahun yang akan dianalisis."),
         ("Generate Analysis", "Sistem menghitung proporsi cacat dan batas kendali otomatis."), ("Evaluate Process", "Baca P-Chart: apakah proses terkendali atau tidak."),
-        ("Root Cause Analysis", "Jika tidak terkendali, telusuri kemungkinan penyebab dengan Fishbone Diagram.")], 1)) + "</div>")
+        ("Follow Up", "Jika tidak terkendali, tindak lanjuti subgroup yang ditandai bersama QC dan lapangan.")], 1)) + "</div>")
     st.write(""); st.button("START ANALYSIS", type="primary", on_click=lambda: st.session_state.update(page=PAGES[1]))
     st.stop()
 
@@ -287,49 +281,22 @@ sec("F. Process Evaluation")
 if len(sm):
     bad = sm[sm.Status != "Terkendali"]
     if bad.empty: box("**Process Stability:** Terkendali (in control). Semua titik pada periode ini berada di antara LCL dan UCL.", GREEN)
-    else: box("**Process Stability:** Tidak terkendali. " + ", ".join(f"{r.Label}: {r.Status}" for r in bad.itertuples()) + ". Lanjutkan ke Root Cause Analysis.", RED)
+    else: box("**Process Stability:** Tidak terkendali. " + ", ".join(f"{r.Label}: {r.Status}" for r in bad.itertuples()) + ". Tindak lanjuti bersama QC.", RED)
 n2 = df[df.Fase == 2] if df.Fase.notna().any() else df.iloc[0:0]
 if len(n2): st.caption(f"Fase II: {(n2.Status != 'Terkendali').sum()} dari {len(n2)} subgroup di luar batas kendali. Seluruh periode: {(df.Status != 'Terkendali').sum()} dari {len(df)}.")
 else: st.caption(f"Seluruh periode: {(df.Status != 'Terkendali').sum()} dari {len(df)} subgroup di luar batas kendali.")
 box("**Process Capability:** " + ("Not Available. Cp/Cpk belum dapat dihitung (lihat tab Process Capability). Proses yang terkendali belum tentu capable." if CAPR is None else f"{capcat(CAPR['cpk'])} (Cpk = {fm(CAPR['cpk'], 3)}, Cp = {fm(CAPR['cp'], 3)})."), "#64748B" if CAPR is None else GREEN)
 
-sec("G. Root Cause Analysis — Fishbone (6M)")
-ooc_list = list(df[df.Status != "Terkendali"].Label)
-if not ooc_list: st.info("Tidak ada titik di luar batas kendali, sehingga Root Cause Analysis tidak diperlukan.")
-else:
-    st.caption("Daftar di bawah adalah kemungkinan penyebab (hipotesis) untuk dikonfirmasi bersama QC dan lapangan, bukan hasil yang sudah terbukti.")
-    default_i = ooc_list.index(sm[sm.Status != "Terkendali"].Label.iloc[0]) if len(sm) and (sm.Status != "Terkendali").any() else 0
-    foc = st.selectbox("Subgroup di luar batas yang dianalisis", ooc_list, index=default_i); r = df[df.Label == foc].iloc[0]
-    dom = max(CAT, key=lambda k: r[k]) if r[CAT].notna().all() and r[CAT].sum() > 0 else None
-    head = f"{foc}: cacat {fm(r.p, 3)}%" + (f" (dominan {dom})" if dom else "")
-    sel_c = {}; cols = st.columns(3)
-    for i, (m6, opts) in enumerate(M6.items()):
-        with cols[i % 3]:
-            ch = st.multiselect(m6, opts, key=f"ms{m6}"); extra = st.text_input(f"{m6} — penyebab lain", key=f"tx{m6}")
-            sel_c[m6] = ch + ([extra] if extra.strip() else [])
-    fb = go.Figure(); fb.add_shape(type="line", x0=0, y0=0, x1=11, y1=0, line=dict(color=NAVY, width=4))
-    fb.add_annotation(x=11.2, y=0, text=f"<b>{head}</b>", showarrow=False, xanchor="left", align="left", bordercolor=RED, borderwidth=2, borderpad=8, bgcolor="#FDECEA", font=dict(size=12), width=190)
-    for i, (m6, cs) in enumerate(sel_c.items()):
-        top = i < 3; x0 = 1.2 + (i % 3) * 3.4; sg = 1 if top else -1
-        fb.add_shape(type="line", x0=x0, y0=3.4 * sg, x1=x0 + 1.5, y1=0, line=dict(color="#5B7083", width=2))
-        fb.add_annotation(x=x0, y=3.7 * sg, text=f"<b>{m6}</b>", showarrow=False, font=dict(color="#fff", size=12), bgcolor=NAVY, borderpad=4)
-        for k, t in enumerate(cs[:5]):
-            y = (2.9 - 0.62 * k) * sg; xb = x0 + 1.5 * (3.4 - abs(y)) / 3.4
-            fb.add_annotation(x=xb, y=y, text=t if len(t) < 34 else t[:32] + "…", showarrow=False, xanchor="right", font=dict(size=10, color="#1C2733"))
-    fb.update_layout(height=520, template="plotly_white", margin=dict(l=10, r=10, t=10, b=10), xaxis=dict(visible=False, range=[-1, 15.5]), yaxis=dict(visible=False, range=[-4.3, 4.3]))
-    st.plotly_chart(fb, width="stretch")
-    n_sel = sum(len(x) for x in sel_c.values()); st.caption(f"{n_sel} kemungkinan penyebab dipilih. Verifikasi dengan data lapangan (mis. bandingkan bulan sebelum dan sesudah perubahan).")
-
-sec("H. Analysis Summary")
+sec("G. Analysis Summary")
 if not len(sm): st.info("Pilih periode yang memiliki data untuk melihat ringkasan.")
 else:
     bad = sm[sm.Status != "Terkendali"]; T_, D_ = sm.n.sum(), sm.d.sum(); pp = D_ / T_ * 100
     L = [f"**Kondisi produksi {MON[mo]} {yr}:** produksi {fm(T_)} {uni}, cacat {fm(D_)} {uni} (**{fm(pp, 3)}%**), yaitu {fm(pp / (P['pbar'] * 100), 2)}× CL proses ({fm(P['pbar'] * 100, 3)}%)."]
     if has_cat and sm[CAT].sum().sum() > 0: tot = sm[CAT].sum().sort_values(ascending=False); L.append(f"**Kategori cacat:** terbesar **{tot.index[0]}** ({fm(tot.iloc[0] / tot.sum() * 100, 1)}% dari cacat periode ini), diikuti {tot.index[1]}.")
-    L.append("**Stabilitas:** " + ("terkendali, semua titik periode ini berada dalam batas kendali." if bad.empty else f"**tidak terkendali** ({len(bad)} subgroup di luar batas: {', '.join(bad.Label)}); perlu ditelusuri lewat Fishbone."))
+    L.append("**Stabilitas:** " + ("terkendali, semua titik periode ini berada dalam batas kendali." if bad.empty else f"**tidak terkendali** ({len(bad)} subgroup di luar batas: {', '.join(bad.Label)}); perlu ditindaklanjuti bersama QC."))
     if runs_ or trend_: L.append("**Pola proses:** " + "; ".join(runs_ + trend_) + ".")
     if len(phs) == 2: L.append(f"**Perbandingan fase:** cacat Fase I {fm(phs[1], 3)}% menjadi Fase II {fm(phs[2], 3)}% ({fm(phs[2] / phs[1], 2)}×).")
     if BART: dec = ("H0 tidak ditolak, asumsi independensi dapat diterima" + (" dengan catatan p mendekati batas." if BART["p"] < .1 else ".")) if BART["chi"] < BART["tab"] else "H0 ditolak: ada korelasi antar kategori cacat, tafsirkan batas kendali dengan hati-hati."; L.append(f"**Uji Bartlett:** χ² = {fm(BART['chi'], 3)} vs tabel {fm(BART['tab'], 3)} (p = {fm(BART['p'], 4)}); {dec}")
     L.append("**Kapabilitas:** " + ("Not Available (data ukur dan USL/LSL belum tersedia); stabilitas tidak otomatis berarti capable." if CAPR is None else f"Cp = {fm(CAPR['cp'], 3)}, Cpk = {fm(CAPR['cpk'], 3)} ({capcat(CAPR['cpk'])})."))
-    L.append("**Tindak lanjut:** " + ("pertahankan kondisi proses dan lanjutkan monitoring." if bad.empty else "konfirmasi penyebab bersama QC (6M), tetapkan tindakan korektif, lalu pantau apakah titik kembali ke dalam batas."))
+    L.append("**Tindak lanjut:** " + ("pertahankan kondisi proses dan lanjutkan monitoring." if bad.empty else "konfirmasi penyebab bersama QC berdasarkan kondisi lapangan, tetapkan tindakan korektif, lalu pantau apakah titik kembali ke dalam batas."))
     box("<br>".join("• " + l for l in L), "#0C4A6E")
