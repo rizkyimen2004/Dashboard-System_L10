@@ -2,24 +2,55 @@
 import math, re
 import numpy as np, pandas as pd, plotly.graph_objects as go, streamlit as st
 from scipy.stats import norm, chi2
+import plotly.io as pio
+pio.templates.default = "plotly_white"
 
 st.set_page_config(page_title="WIREQ · Wire Quality Monitoring System", page_icon="🔩", layout="wide")
 NAVY, AMBER, RED, GREEN, BLUE = "#0C4A6E", "#F59E0B", "#EF4444", "#10B981", "#0EA5E9"
 st.markdown("""<style>
-.stApp{background:#F0F9FF}.block-container{padding-top:1.4rem;max-width:1280px}
-[data-testid="stSidebar"]{background:linear-gradient(180deg,#E0F2FE,#BAE6FD)}[data-testid="stSidebar"] *{color:#0C4A6E}
+.stApp{background:linear-gradient(180deg,#E6F4FC 0%,#F4FAFF 100%)}
+[data-testid="stHeader"]{background:transparent}
+.stApp h1,.stApp h2,.stApp h3{color:#0C4A6E}
+[data-testid="stWidgetLabel"] *,[data-testid="stCaptionContainer"] *,[data-testid="stMarkdownContainer"] p,[data-testid="stMarkdownContainer"] li,.stRadio label p,.stCheckbox label p{color:#0F2A3D}
+[data-testid="stCaptionContainer"],[data-testid="stCaptionContainer"] *{color:#2B4A5E!important}
+[data-baseweb="select"]>div,[data-baseweb="input"]>div,[data-baseweb="base-input"],[data-baseweb="textarea"]{background:#fff!important;border-color:#7DD3FC!important}
+[data-baseweb="select"] *,[data-baseweb="input"] input,[data-baseweb="textarea"] textarea{color:#0F2A3D!important}
+[data-testid="stExpander"]{background:#fff;border:1px solid #BAE6FD;border-radius:12px}[data-testid="stExpander"] summary *{color:#0C4A6E!important}
+[data-testid="stFileUploaderDropzone"]{background:#fff;border:1.5px dashed #38BDF8}[data-testid="stFileUploaderDropzone"] *{color:#0F2A3D!important}
+[data-baseweb="tab"] *{color:#0C4A6E!important;font-weight:600}[data-baseweb="tab-highlight"]{background:#0EA5E9!important}
+[data-testid="stPlotlyChart"]{background:#fff;border:1px solid #BAE6FD;border-radius:12px;padding:6px;box-shadow:0 2px 6px rgba(3,105,161,.08)}
+[data-testid="stBaseButton-primary"]{background:linear-gradient(90deg,#0284C7,#06B6D4);border:0;color:#fff;font-weight:700;letter-spacing:1px;padding:.65rem 1.8rem;border-radius:10px;box-shadow:0 4px 12px rgba(2,132,199,.35)}
+[data-testid="stBaseButton-primary"] *{color:#fff!important}
+[data-testid="stSidebar"]{background:linear-gradient(180deg,#D9EEFB,#BFE3F8);border-right:1px solid #9BD4F2}[data-testid="stSidebar"] *{color:#0C4A6E}
+[data-testid="stSidebar"] div[role="radiogroup"]{gap:8px}
+[data-testid="stSidebar"] div[role="radiogroup"] label{background:#fff;border:1px solid #7DD3FC;border-radius:10px;padding:11px 14px;width:100%;box-shadow:0 1px 3px rgba(3,105,161,.12)}
+[data-testid="stSidebar"] div[role="radiogroup"]{width:100%}[data-testid="stSidebar"] div[role="radiogroup"] label{display:flex!important;width:100%!important}[data-testid="stSidebar"] [data-baseweb="radio"]>div:first-child,[data-testid="stSidebar"] div[role="radiogroup"] label>div:first-child{display:none!important}
+[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked){background:linear-gradient(90deg,#0284C7,#06B6D4);border-color:#0284C7}
+[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) *{color:#fff!important;font-weight:700}
+.sb-brand{display:flex;gap:12px;align-items:center;margin:6px 0 18px}.sb-logo{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#0284C7,#22D3EE);display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 10px rgba(2,132,199,.4)}
+.sb-name{font-size:24px;font-weight:800;letter-spacing:4px;color:#0369A1!important;line-height:1}.sb-sub{font-size:9.5px;letter-spacing:1.5px;color:#0C4A6E!important;margin-top:3px}
+.sb-h{font-size:11px;letter-spacing:2px;font-weight:700;margin:6px 0 8px;color:#0369A1!important}
+.sb-card{background:rgba(255,255,255,.75);border:1px solid #9BD4F2;border-radius:12px;padding:12px 14px;margin-top:18px;font-size:12.5px;line-height:1.55}
+.banner{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;background:linear-gradient(135deg,#0284C7,#0EA5E9 60%,#22D3EE);border-radius:14px;padding:18px 26px;margin-bottom:6px;box-shadow:0 6px 16px rgba(2,132,199,.25)}
+.banner .bt{font-size:25px;font-weight:800;color:#fff}.banner .bs{color:#E0F7FF;font-size:13px}.chip{display:inline-block;background:rgba(255,255,255,.22);color:#fff;border-radius:20px;padding:6px 16px;margin-left:8px;font-weight:700;font-size:13px;letter-spacing:.5px}
+.cap{color:#2B4A5E;font-size:13px;line-height:1.5;margin:4px 0 8px}
+.tblwrap{overflow:auto;background:#fff;border:1px solid #BAE6FD;border-radius:12px;margin:8px 0}.tbl{border-collapse:collapse;width:100%;font-size:13px;color:#0F2A3D}
+.tbl th{position:sticky;top:0;background:#E0F2FE;color:#0C4A6E;padding:8px 12px;text-align:left;border-bottom:2px solid #7DD3FC}.tbl td{padding:7px 12px;border-bottom:1px solid #E0F2FE;color:#0F2A3D}
+.tbl tr.hl td{background:#FEF3C7;font-weight:600}.tbl .ok{color:#047857;font-weight:600}.tbl .bad{color:#DC2626;font-weight:700}
+.block-container{padding-top:1.4rem;max-width:1280px}
+
 .hero{background:linear-gradient(135deg,#0284C7 0%,#0EA5E9 55%,#22D3EE 100%);border-radius:14px;padding:46px 50px;color:#fff;position:relative;overflow:hidden}
 .hero:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(115deg,rgba(255,255,255,.05) 0 2px,transparent 2px 24px)}
 .hero>*{position:relative}.hero h1{text-shadow:0 2px 10px rgba(3,105,161,.35);font-size:56px;letter-spacing:8px;margin:0;color:#fff}
 .hero .sub{letter-spacing:3px;font-size:13px;color:#FEF3C7;margin-top:2px}.hero .tag{font-size:21px;margin-top:18px;font-weight:600}
-.hero p{max-width:720px;color:#D5E1EC;margin-top:10px}.pill{display:inline-block;border:1px solid rgba(255,255,255,.45);border-radius:20px;padding:3px 14px;font-size:12px;letter-spacing:1px}
+.hero p{max-width:720px;color:#fff;margin-top:10px}.pill{display:inline-block;border:1px solid rgba(255,255,255,.45);border-radius:20px;padding:3px 14px;font-size:12px;letter-spacing:1px}
 .sec{border-left:5px solid #F59E0B;padding-left:12px;margin:28px 0 12px;font-size:21px;font-weight:700;color:#0C4A6E}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
 .card{background:#fff;border:1px solid #BAE6FD;border-radius:12px;padding:15px 18px;box-shadow:0 1px 3px rgba(11,42,67,.06)}
 .card h4{margin:0 0 5px;color:#0C4A6E;font-size:15px}.card p{margin:0;color:#4A5B6B;font-size:13.5px;line-height:1.5}
 .step .no{display:inline-block;background:#0C4A6E;color:#fff;border-radius:6px;padding:2px 9px;font-size:12px;font-weight:700;letter-spacing:1px;margin-bottom:8px}
 .kpi{background:#fff;border:1px solid #BAE6FD;border-top:4px solid #0EA5E9;border-radius:12px;padding:14px 18px}
-.kpi .l{font-size:12px;color:#6B7B8A;letter-spacing:.6px;text-transform:uppercase}.kpi .v{font-size:27px;font-weight:700;color:#0C4A6E;margin-top:2px}.kpi .s{font-size:12px;color:#6B7B8A}
+.kpi .l{font-size:12px;color:#3F5F73;letter-spacing:.6px;text-transform:uppercase}.kpi .v{font-size:27px;font-weight:700;color:#0C4A6E;margin-top:2px}.kpi .s{font-size:12px;color:#3F5F73}
 .box{border-left:5px solid;border-radius:6px;padding:10px 14px;margin:6px 0;background:#fff;border-top:1px solid #BAE6FD;border-right:1px solid #BAE6FD;border-bottom:1px solid #BAE6FD;color:#1C2733}
 </style>""", unsafe_allow_html=True)
 
@@ -35,6 +66,12 @@ def H(x): st.markdown(x, unsafe_allow_html=True)
 def sec(t): H(f'<div class="sec">{t}</div>')
 def card(t, p, cls=""): return f'<div class="card {cls}"><h4>{t}</h4><p>{p}</p></div>'
 def box(t, color): H(f'<div class="box" style="border-left-color:{color}">{re.sub(r"[*][*](.+?)[*][*]", r"<b>\1</b>", t)}</div>')
+def capt(t): H('<div class="cap">' + str(t).replace("<", "&lt;").replace(">", "&gt;") + "</div>")
+def tbl(df, fmt=None, hl=None, h=300):
+    fmt = fmt or {}; head = "".join(f"<th>{c}</th>" for c in df.columns); rows = ""
+    for _, r in df.iterrows():
+        rows += f'<tr{" class=hl" if hl and hl(r) else ""}>' + "".join(f"<td>{fmt[c].format(r[c]) if c in fmt else r[c]}</td>" for c in df.columns) + "</tr>"
+    H(f'<div class="tblwrap" style="max-height:{h}px"><table class="tbl"><thead><tr>{head}</tr></thead><tbody>{rows}</tbody></table></div>')
 def kpi(l, v, s="", c=BLUE): return f'<div class="kpi" style="border-top-color:{c}"><div class="l">{l}</div><div class="v">{v}</div><div class="s">{s}&nbsp;</div></div>'
 
 def pn(v):
@@ -111,8 +148,9 @@ def capcat(x): return "Capable" if x >= 1.33 else "Marginal" if x >= 1 else "Not
 
 # ================================================================= sidebar
 st.session_state.setdefault("page", PAGES[0])
-H('<div style="font-size:30px;font-weight:800;letter-spacing:6px;color:#0369A1">WIREQ</div><div style="font-size:11px;letter-spacing:2px;color:#D97706;margin-bottom:14px">WIRE QUALITY MONITORING SYSTEM</div>')
-page = st.sidebar.radio("Navigasi", PAGES, key="page"); st.sidebar.caption("PT Surabaya Wire · Steel Wire Nail L10")
+st.sidebar.markdown('<div class="sb-brand"><div class="sb-logo">🔩</div><div><div class="sb-name">WIREQ</div><div class="sb-sub">WIRE QUALITY MONITORING SYSTEM</div></div></div><div class="sb-h">MENU</div>', unsafe_allow_html=True)
+page = st.sidebar.radio("Navigasi", PAGES, key="page", label_visibility="collapsed")
+st.sidebar.markdown('<div class="sb-card"><b>PT Surabaya Wire</b><br>Steel Wire Nail L10<br><span style="opacity:.85">Monitor Quality.<br>Control Process.<br>Improve Performance.</span></div>', unsafe_allow_html=True)
 
 # ================================================================= PAGE 1
 if page == PAGES[0]:
@@ -120,7 +158,7 @@ if page == PAGES[0]:
       '<div class="tag">Monitor Quality. Control Process. Improve Performance.</div>'
       '<p>Sistem monitoring kualitas produksi paku kawat baja L10 di PT Surabaya Wire. Unggah data produksi, analisis kestabilan proses dengan Statistical Process Control, lalu tandai penyimpangan yang perlu ditindaklanjuti.</p></div>')
     sec("About the Dashboard")
-    H('<div class="grid">' + "".join(card(t, p) for t, p in [("Memantau Kualitas", "Melihat jumlah produksi, cacat, dan produk baik tiap periode."), ("Analisis Proporsi Cacat", "Menghitung proporsi cacat tiap subgroup."), ("Kestabilan Proses", "Mengevaluasi apakah proses berada dalam batas kendali statistik."), ("Penelusuran Penyimpangan", "Menandai subgroup di luar batas kendali untuk ditindaklanjuti bersama QC."), ("Dukungan Keputusan", "Memberi dasar data untuk tindak lanjut pengendalian kualitas.")]) + "</div>")
+    H('<div class="grid">' + "".join(card(t, p) for t, p in [("📈 Memantau Kualitas", "Melihat jumlah produksi, cacat, dan produk baik tiap periode."), ("🔬 Analisis Proporsi Cacat", "Menghitung proporsi cacat tiap subgroup."), ("⚖️ Kestabilan Proses", "Mengevaluasi apakah proses berada dalam batas kendali statistik."), ("🔎 Penelusuran Penyimpangan", "Menandai subgroup di luar batas kendali untuk ditindaklanjuti bersama QC."), ("🎯 Dukungan Keputusan", "Memberi dasar data untuk tindak lanjut pengendalian kualitas.")]) + "</div>")
     sec("Understanding the Analysis")
     a, b = st.columns([1.05, 1])
     with a:
@@ -138,7 +176,7 @@ if page == PAGES[0]:
         f.add_trace(go.Scatter(x=xs, y=ys, mode="lines+markers", name="Proporsi cacat", line=dict(color=BLUE, width=1.5), marker=dict(size=9, color=[RED if o else BLUE for o in out], symbol=["diamond" if o else "circle" for o in out])))
         f.add_annotation(x=8, y=34, text="Di luar batas", ax=40, ay=-25, arrowcolor=RED, font=dict(color=RED)); f.add_annotation(x=5, y=18, text="Di dalam batas", ax=0, ay=40, arrowcolor=BLUE, font=dict(color=BLUE))
         f.update_layout(title="Ilustrasi cara membaca P-Chart (data contoh)", height=360, margin=dict(l=40, r=10, t=50, b=30), legend=dict(orientation="h", y=-0.12), yaxis_title="% cacat", template="plotly_white")
-        st.plotly_chart(f, width="stretch")
+        st.plotly_chart(f, width="stretch", theme=None)
     sec("How to Use WIREQ")
     H('<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">' + "".join(card(f'<span class="no">STEP {i:02d}</span><br>{t}', p, "step") for i, (t, p) in enumerate([
         ("Upload Data", "Unggah file Excel atau CSV berisi data produksi (atau pakai data contoh/input manual)."), ("Select Period", "Pilih bulan dan tahun yang akan dianalisis."),
@@ -148,7 +186,7 @@ if page == PAGES[0]:
     st.stop()
 
 # ================================================================= PAGE 2
-H('<div style="font-size:28px;font-weight:800;color:#0C4A6E;letter-spacing:1px">Quality Control Analysis</div><div style="color:#6B7B8A;margin-bottom:6px">WIREQ · Steel Wire Nail L10 · PT Surabaya Wire</div>')
+bn = st.empty()
 sec("A. Data Management")
 src = st.radio("Sumber data", ["Dataset contoh (data notebook L10)", "Upload Excel / CSV", "Input manual"], horizontal=True)
 unit = st.radio("Satuan data produksi & cacat", ["kg (dikonversi 164,2 biji/kg)", "biji / unit"], horizontal=True, index=0 if src.startswith("Dataset") else 1, key="u" + src)
@@ -157,14 +195,14 @@ if src.startswith("Dataset"):
     raw = pd.DataFrame(DEMO, columns=["Periode", "Fase", "Produksi"] + CAT); raw["Subgroup"] = range(1, len(raw) + 1); raw["Cacat"] = raw[CAT].sum(axis=1)
 elif src.startswith("Upload"):
     up = st.file_uploader("File data (.xlsx / .csv)", type=["xlsx", "xls", "csv"])
-    st.caption("Kolom minimal: Periode/Tanggal, Subgroup (opsional), Produksi (ukuran sampel), Cacat. Opsional: KTC, K-, UC, BC, Fase (1/2).")
+    capt("Kolom minimal: Periode/Tanggal, Subgroup (opsional), Produksi (ukuran sampel), Cacat. Opsional: KTC, K-, UC, BC, Fase (1/2).")
     if up is not None:
         try: raw = pd.read_csv(up) if up.name.lower().endswith(".csv") else pd.read_excel(up)
         except Exception as e: st.error(f"File tidak dapat dibaca: {e}")
 else:
     tpl = pd.DataFrame({"Periode": pd.Series([None] * 8, dtype="object"), "Subgroup": pd.Series([None] * 8, dtype="float"), "Produksi": pd.Series([None] * 8, dtype="float"), "Cacat": pd.Series([None] * 8, dtype="float"),
                         **{c: pd.Series([None] * 8, dtype="float") for c in CAT}})
-    st.caption("Isi tabel (contoh periode: Jan 2024). Kolom Cacat boleh kosong jika KTC, K-, UC, BC diisi. Tambah baris dengan baris kosong paling bawah. Minimal 6 subgroup.")
+    capt("Isi tabel (contoh periode: Jan 2024). Kolom Cacat boleh kosong jika KTC, K-, UC, BC diisi. Tambah baris dengan baris kosong paling bawah. Minimal 6 subgroup.")
     raw = st.data_editor(tpl, num_rows="dynamic", width="stretch", key="manual")
 if raw is None:
     st.info("Pilih atau unggah data untuk memulai analisis."); st.stop()
@@ -177,7 +215,7 @@ f = FAKTOR if unit.startswith("kg") else 1.0
 df["N"] = df.n * f; df["D"] = df.d * f
 uni = "kg" if unit.startswith("kg") else "unit"
 st.success(f"Struktur data valid: {len(df)} subgroup · {df.Periode.nunique()} periode" + (" · kolom Fase terbaca" if df.Fase.notna().any() else " · tanpa kolom Fase (seluruh data jadi baseline)") + (" · kategori cacat tersedia" if df[CAT].notna().all().all() else ""))
-with st.expander("Preview data (10 baris pertama)"): st.dataframe(df[["Periode", "Subgroup", "n", "d"] + CAT + (["Fase"] if df.Fase.notna().any() else [])].head(10), hide_index=True, width="stretch")
+with st.expander("Preview data (10 baris pertama)"): tbl(df[["Periode", "Subgroup", "n", "d"] + CAT + (["Fase"] if df.Fase.notna().any() else [])].head(10), {"n": "{:,.0f}", "d": "{:,.0f}"}, h=300)
 
 sec("B. Filter Analysis")
 c = st.columns(4); years = sorted(df.y.unique())
@@ -190,17 +228,19 @@ P = pchart(df, mode, revise)
 df["p"] = P["p"] * 100; df["CL"] = P["pbar"] * 100; df["UCL"] = P["ucl"] * 100; df["LCL"] = P["lcl"] * 100
 df["Status"] = np.where(P["p"] > P["ucl"], "OOC ▲ di atas UCL", np.where(P["p"] < P["lcl"], "OOC ▼ di bawah LCL", "Terkendali"))
 sm = df[(df.y == yr) & (df.m == mo)]; period = f"{AB[mo]} {yr}"
+_bad = sm[sm.Status != "Terkendali"]; _st = ("NO DATA", "#64748B") if not len(sm) else ("IN CONTROL", "#10B981") if _bad.empty else ("OUT OF CONTROL", "#EF4444")
+bn.markdown(f'<div class="banner"><div><div class="bt">📊 Quality Control Analysis</div><div class="bs">WIREQ · Steel Wire Nail L10 · PT Surabaya Wire</div></div><div><span class="chip">📅 {MON[mo]} {yr}</span><span class="chip" style="background:{_st[1]}">{_st[0]}</span></div></div>', unsafe_allow_html=True)
 if mode == "actual" and (df.Status != "Terkendali").mean() > .6:
     st.warning("Pada mode nᵢ aktual, ukuran sampel sangat besar sehingga batas kendali sangat sempit dan hampir semua titik tampak di luar batas (overdispersi). Gunakan mode Tetap (Cochran) bila itu metode yang dipakai pada analisis.")
 
 sec(f"C. Production Overview — {MON[mo]} {yr}")
 if len(sm):
     T, Dd = sm.n.sum(), sm.d.sum()
-    H('<div class="grid">' + kpi("Total Production", f"{fm(T)} {uni if uni == 'kg' else ''}") + kpi("Total Defect", f"{fm(Dd)} {uni if uni == 'kg' else ''}", c=RED) + kpi("Good Products", f"{fm(T - Dd)} {uni if uni == 'kg' else ''}", c=GREEN) + kpi("Defect Percentage", f"{fm(Dd / T * 100, 3)} %", f"CL proses {fm(P['pbar'] * 100, 3)} %", AMBER) + "</div>")
+    H('<div class="grid">' + kpi("🏭 Total Production", f"{fm(T)} {uni if uni == 'kg' else ''}") + kpi("⚠️ Total Defect", f"{fm(Dd)} {uni if uni == 'kg' else ''}", c=RED) + kpi("✅ Good Products", f"{fm(T - Dd)} {uni if uni == 'kg' else ''}", c=GREEN) + kpi("📉 Defect Percentage", f"{fm(Dd / T * 100, 3)} %", f"CL proses {fm(P['pbar'] * 100, 3)} %", AMBER) + "</div>")
 else: st.warning(f"Tidak ada data untuk {MON[mo]} {yr}.")
 
 sec("D. Statistical Process Control — P-Chart")
-st.caption(f"pᵢ = dᵢ/nᵢ · CL = p̄ = {fm(P['pbar'] * 100, 4)}% · UCL = p̄ + 3√[p̄(1−p̄)/nᵢ] · LCL = max(0, p̄ − 3√[p̄(1−p̄)/nᵢ]) · "
+capt(f"pᵢ = dᵢ/nᵢ · CL = p̄ = {fm(P['pbar'] * 100, 4)}% · UCL = p̄ + 3√[p̄(1−p̄)/nᵢ] · LCL = max(0, p̄ − 3√[p̄(1−p̄)/nᵢ]) · "
            + (f"n tetap Cochran = {fm(P['nC'])}" if mode == "fixed" else "nᵢ aktual (biji)") + f" · baseline {P['used']} dari {P['nbase']} subgroup" + (f" (dikeluarkan: {', '.join(P['rem'])})" if P["rem"] else "") + ("" if P["ok"] else " · belum konvergen"))
 v = df if rng == "Seluruh periode" else df[df.y == yr]
 fig = go.Figure()
@@ -210,9 +250,10 @@ fig.add_trace(go.Scatter(x=v.Label, y=v.p, name="pᵢ (% cacat)", mode="lines+ma
     customdata=np.c_[v.n, v.d, v.UCL, v.LCL, v.Status], hovertemplate="%{x}<br>pᵢ = %{y:.4f}%<br>nᵢ = %{customdata[0]:,.0f} · dᵢ = %{customdata[1]:,.0f}<br>UCL = %{customdata[2]:.4f}% · LCL = %{customdata[3]:.4f}%<br>%{customdata[4]}<extra></extra>"))
 if len(sm): s2 = sm[sm.index.isin(v.index)]; fig.add_trace(go.Scatter(x=s2.Label, y=s2.p, name="Periode terpilih", mode="markers", hoverinfo="skip", marker=dict(size=19, symbol="circle-open", color=AMBER, line=dict(width=3))))
 fig.update_layout(height=430, template="plotly_white", margin=dict(l=60, r=20, t=20, b=60), xaxis=dict(type="category", tickangle=-60), yaxis=dict(title="Proporsi cacat (%)"), legend=dict(orientation="h", y=1.1))
-st.plotly_chart(fig, width="stretch")
+st.plotly_chart(fig, width="stretch", theme=None)
 tb = v[["Label", "n", "d", "p", "LCL", "CL", "UCL", "Status"]].rename(columns={"Label": "Subgroup", "n": f"Produksi ({uni})", "d": f"Cacat ({uni})", "p": "pᵢ (%)"})
-st.dataframe(tb.style.apply(lambda r: ["background-color:#FFF4D6;color:#000" if r.Subgroup in set(sm.Label) else ""] * len(r), axis=1).format({tb.columns[1]: "{:,.0f}", tb.columns[2]: "{:,.0f}", "pᵢ (%)": "{:.4f}", "LCL": "{:.4f}", "CL": "{:.4f}", "UCL": "{:.4f}"}), hide_index=True, width="stretch", height=300)
+tbh = tb.copy(); tbh["Status"] = tbh.Status.map(lambda t: f'<span class="{"ok" if t == "Terkendali" else "bad"}">{t}</span>')
+tbl(tbh, {tb.columns[1]: "{:,.0f}", tb.columns[2]: "{:,.0f}", "pᵢ (%)": "{:.4f}", "LCL": "{:.4f}", "CL": "{:.4f}", "UCL": "{:.4f}"}, lambda r: r["Subgroup"] in set(sm.Label), 320)
 st.download_button("⬇ Unduh hasil perhitungan P-Chart (CSV)", tb.to_csv(index=False).encode("utf-8"), "wireq_hasil_pchart.csv", "text/csv")
 
 sec("E. Advanced Analysis")
@@ -232,8 +273,8 @@ with t1:
         z_ = ((P["p"][sm.index] - P["pbar"]) / np.sqrt(P["pbar"] * (1 - P["pbar"]) / P["nof"][sm.index])).mean()
         dpo = sm.D.sum() / (sm.N.sum() * 4); sg_ = norm.ppf(1 - dpo) + 1.5 if dpo > 0 else float("nan")
         H('<div class="grid">' + kpi("DPMO", fm(dpo * 1e6), "k = 4 jenis cacat") + kpi("Level Sigma", fm(sg_, 2), "sigma + 1,5 shift", "#10B981") + kpi("Jarak dari CL", f"{z_:+.2f} σ", "pᵢ terhadap p̄", "#F59E0B") + kpi("Rasio terhadap CL", f"{fm(sm.d.sum() / sm.n.sum() / P['pbar'], 2)} ×", "cacat periode ÷ CL", "#EF4444") + "</div>")
-    if len(phs) == 2: st.dataframe(pd.DataFrame({"Fase": ["I (baseline)", "II (monitoring)"], "Cacat gabungan (%)": [phs[1], phs[2]]}).style.format({"Cacat gabungan (%)": "{:.4f}"}), hide_index=True)
-    if len(phs) == 2: st.caption(f"Cacat Fase II adalah {fm(phs[2] / phs[1], 2)}× Fase I.")
+    if len(phs) == 2: tbl(pd.DataFrame({"Fase": ["I (baseline)", "II (monitoring)"], "Cacat gabungan (%)": [phs[1], phs[2]]}), {"Cacat gabungan (%)": "{:.4f}"}, h=140)
+    if len(phs) == 2: capt(f"Cacat Fase II adalah {fm(phs[2] / phs[1], 2)}× Fase I.")
 with t2:
     if not has_cat: st.info("Kolom kategori cacat (KTC, K-, UC, BC) diperlukan untuk Pareto dan tren.")
     else:
@@ -242,10 +283,10 @@ with t2:
             tot = dd[CAT].sum().sort_values(ascending=False)
             if tot.sum() <= 0: col_.info("Tidak ada cacat pada data ini."); continue
             pf = go.Figure(go.Bar(x=tot.index, y=tot.values, marker_color=BLUE, name="Cacat")); pf.add_trace(go.Scatter(x=tot.index, y=(tot.cumsum() / tot.sum() * 100).values, yaxis="y2", mode="lines+markers", line=dict(color=AMBER), name="Kumulatif %"))
-            pf.update_layout(title=ttl, height=320, template="plotly_white", margin=dict(l=40, r=40, t=50, b=30), yaxis2=dict(overlaying="y", side="right", range=[0, 105]), legend=dict(orientation="h", y=-0.15)); col_.plotly_chart(pf, width="stretch")
-        tr = go.Figure([go.Bar(x=v.Label, y=v[c], name=c) for c in CAT]); tr.update_layout(barmode="stack", title="Tren cacat per kategori", height=340, template="plotly_white", margin=dict(l=40, r=10, t=50, b=60), xaxis=dict(type="category", tickangle=-60)); st.plotly_chart(tr, width="stretch")
+            pf.update_layout(title=ttl, height=320, template="plotly_white", margin=dict(l=40, r=40, t=50, b=30), yaxis2=dict(overlaying="y", side="right", range=[0, 105]), legend=dict(orientation="h", y=-0.15)); col_.plotly_chart(pf, width="stretch", theme=None)
+        tr = go.Figure([go.Bar(x=v.Label, y=v[c], name=c) for c in CAT]); tr.update_layout(barmode="stack", title="Tren cacat per kategori", height=340, template="plotly_white", margin=dict(l=40, r=10, t=50, b=60), xaxis=dict(type="category", tickangle=-60)); st.plotly_chart(tr, width="stretch", theme=None)
 with t3:
-    st.caption("Aturan tambahan terhadap CL: ≥ 7 titik berturut-turut di satu sisi CL, atau tren naik/turun ≥ 6 titik, dapat menandakan pergeseran proses meski titik masih di dalam batas.")
+    capt("Aturan tambahan terhadap CL: ≥ 7 titik berturut-turut di satu sisi CL, atau tren naik/turun ≥ 6 titik, dapat menandakan pergeseran proses meski titik masih di dalam batas.")
     if runs_ or trend_:
         for t in runs_ + trend_: box("**Pola terdeteksi:** " + t, AMBER)
     else: box("**Tidak ada pola** run/tren yang terdeteksi.", GREEN)
@@ -254,9 +295,9 @@ with t4:
     else:
         H('<div class="grid">' + kpi("|R|", fm(BART["det"], 6)) + kpi("χ² hitung", fm(BART["chi"], 3), f"db = {BART['df']} · n = {BART['n']}", "#F59E0B") + kpi("χ² tabel (5%)", fm(BART["tab"], 3), "", "#10B981") + kpi("p-value", fm(BART["p"], 4), "", "#EF4444") + "</div>")
         box(("**H0 tidak ditolak:** tidak ada korelasi signifikan antar kategori cacat; asumsi independensi dapat diterima" + (", dengan catatan p mendekati batas 0,05." if BART["p"] < .1 else ".")) if BART["chi"] < BART["tab"] else "**H0 ditolak:** ada korelasi signifikan antar kategori cacat; asumsi independensi dilanggar.", AMBER)
-        hm = go.Figure(go.Heatmap(z=BART["R"], x=CAT, y=CAT, zmin=-1, zmax=1, colorscale="RdBu", text=np.round(BART["R"], 2), texttemplate="%{text}")); hm.update_layout(title="Matriks korelasi antar kategori (baseline)", height=340, margin=dict(l=40, r=10, t=50, b=30)); st.plotly_chart(hm, width="stretch")
+        hm = go.Figure(go.Heatmap(z=BART["R"], x=CAT, y=CAT, zmin=-1, zmax=1, colorscale="RdBu", text=np.round(BART["R"], 2), texttemplate="%{text}")); hm.update_layout(title="Matriks korelasi antar kategori (baseline)", height=340, margin=dict(l=40, r=10, t=50, b=30)); st.plotly_chart(hm, width="stretch", theme=None)
 with t5:
-    st.caption("Cp/Cpk memerlukan data ukur karakteristik kualitas individual (mis. diameter) serta USL/LSL. Tidak dapat dihitung dari jumlah atau persentase cacat.")
+    capt("Cp/Cpk memerlukan data ukur karakteristik kualitas individual (mis. diameter) serta USL/LSL. Tidak dapat dihitung dari jumlah atau persentase cacat.")
     cc = st.columns([1, 1, 2]); usl = cc[0].number_input("USL", value=None, format="%.4f", placeholder="isi USL"); lsl = cc[1].number_input("LSL", value=None, format="%.4f", placeholder="isi LSL")
     mf = cc[2].file_uploader("Data ukur (kolom Periode, Nilai)", type=["xlsx", "xls", "csv"], key="meas"); why = []; vals = np.array([])
     if mf is None: why.append("Data ukur individual belum diunggah.")
@@ -275,7 +316,7 @@ with t5:
         mu, sd = vals.mean(), vals.std(ddof=1); cp_ = (usl - lsl) / (6 * sd); cpk_ = min((usl - mu) / (3 * sd), (mu - lsl) / (3 * sd)); CAPR = dict(cp=cp_, cpk=cpk_)
         H('<div class="grid">' + kpi("Cp", fm(cp_, 3), capcat(cp_)) + kpi("Cpk", fm(cpk_, 3), capcat(cpk_), "#10B981") + kpi("USL", fm(usl, 3), "", "#F59E0B") + kpi("LSL", fm(lsl, 3), "", "#F59E0B") + "</div>")
         hh = go.Figure(go.Histogram(x=vals, marker_color=BLUE)); [hh.add_vline(x=x, line=dict(color=c, dash="dash"), annotation_text=t) for x, t, c in [(lsl, "LSL", RED), (usl, "USL", RED), (mu, "μ", GREEN)]]
-        hh.update_layout(height=320, template="plotly_white", margin=dict(l=40, r=10, t=20, b=30)); st.plotly_chart(hh, width="stretch"); st.caption(f"n = {len(vals)} · μ = {fm(mu, 4)} · σ = {fm(sd, 4)}. Kategori: ≥ 1,33 Capable; 1,00–1,33 Marginal; < 1,00 Not Capable." + (" n < 30: estimasi kurang andal." if len(vals) < 30 else ""))
+        hh.update_layout(height=320, template="plotly_white", margin=dict(l=40, r=10, t=20, b=30)); st.plotly_chart(hh, width="stretch", theme=None); capt(f"n = {len(vals)} · μ = {fm(mu, 4)} · σ = {fm(sd, 4)}. Kategori: ≥ 1,33 Capable; 1,00–1,33 Marginal; < 1,00 Not Capable." + (" n < 30: estimasi kurang andal." if len(vals) < 30 else ""))
 
 sec("F. Process Evaluation")
 if len(sm):
@@ -283,8 +324,8 @@ if len(sm):
     if bad.empty: box("**Process Stability:** Terkendali (in control). Semua titik pada periode ini berada di antara LCL dan UCL.", GREEN)
     else: box("**Process Stability:** Tidak terkendali. " + ", ".join(f"{r.Label}: {r.Status}" for r in bad.itertuples()) + ". Tindak lanjuti bersama QC.", RED)
 n2 = df[df.Fase == 2] if df.Fase.notna().any() else df.iloc[0:0]
-if len(n2): st.caption(f"Fase II: {(n2.Status != 'Terkendali').sum()} dari {len(n2)} subgroup di luar batas kendali. Seluruh periode: {(df.Status != 'Terkendali').sum()} dari {len(df)}.")
-else: st.caption(f"Seluruh periode: {(df.Status != 'Terkendali').sum()} dari {len(df)} subgroup di luar batas kendali.")
+if len(n2): capt(f"Fase II: {(n2.Status != 'Terkendali').sum()} dari {len(n2)} subgroup di luar batas kendali. Seluruh periode: {(df.Status != 'Terkendali').sum()} dari {len(df)}.")
+else: capt(f"Seluruh periode: {(df.Status != 'Terkendali').sum()} dari {len(df)} subgroup di luar batas kendali.")
 box("**Process Capability:** " + ("Not Available. Cp/Cpk belum dapat dihitung (lihat tab Process Capability). Proses yang terkendali belum tentu capable." if CAPR is None else f"{capcat(CAPR['cpk'])} (Cpk = {fm(CAPR['cpk'], 3)}, Cp = {fm(CAPR['cp'], 3)})."), "#64748B" if CAPR is None else GREEN)
 
 sec("G. Analysis Summary")
